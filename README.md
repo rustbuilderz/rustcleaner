@@ -4,4 +4,4 @@
 Good for cleaning rust leftover files and Registry keys even after uninstalling rust with Revo uninstaller.
 
 
-## looking for advice, DMs open "@rustbuilder." on discord
+## looking for advice, DMs open "rustbuilder." on discord
