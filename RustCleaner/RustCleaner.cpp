@@ -8,7 +8,7 @@
 #include <shlobj.h>
 #include <cstdlib>
 
-void slowtype(const std::string& text, int delay = 50) {
+void slowtype(const std::string& text, int delay = 25) {
     for (char c : text) {
         std::cout << c << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
@@ -44,7 +44,7 @@ bool registryKeyExists(const std::string& key) {
     return system(command.c_str()) == 0;
 }
 
-void cleaner() {
+void cleaner(bool automaticDelete) {
     const std::vector<std::string> directories = {
         "C:\\Program Files (x86)\\Steam\\userdata",
         "C:\\Program Files (x86)\\Steam\\appcache",
@@ -62,13 +62,28 @@ void cleaner() {
             if (std::filesystem::exists(dir_path)) {
                 for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
                     try {
+                        std::string user_input;
                         if (std::filesystem::is_directory(entry)) {
-                            std::filesystem::remove_all(entry);
-                            std::cout << "[+] Deleted directory " << entry.path() << std::endl;
+                            std::cout << "Would you like to delete directory: " << entry.path() << " (y/n)? ";
+                            std::cin >> user_input;
+                            if (user_input == "y" || user_input == "Y") {
+                                std::filesystem::remove_all(entry);
+                                std::cout << "[+] Deleted directory " << entry.path() << std::endl;
+                            }
+                            else {
+                                std::cout << "[-] Skipped directory " << entry.path() << std::endl;
+                            }
                         }
                         else {
-                            std::filesystem::remove(entry);
-                            std::cout << "[+] Deleted file " << entry.path() << std::endl;
+                            std::cout << "Would you like to delete file: " << entry.path() << " (y/n)? ";
+                            std::cin >> user_input;
+                            if (user_input == "y" || user_input == "Y") {
+                                std::filesystem::remove(entry);
+                                std::cout << "[+] Deleted file " << entry.path() << std::endl;
+                            }
+                            else {
+                                std::cout << "[-] Skipped file " << entry.path() << std::endl;
+                            }
                         }
                     }
                     catch (const std::filesystem::filesystem_error& e) {
@@ -84,13 +99,22 @@ void cleaner() {
         }
     }
 
+    // Ask for confirmation before deleting registry keys
     std::string key1 = "HKEY_CURRENT_USER\\SOFTWARE\\Facepunch Studios LTD\\Rust";
+    std::string user_input;
     if (registryKeyExists(key1)) {
-        if (system(("reg delete \"" + key1 + "\" /f").c_str()) == 0) {
-            std::cout << "[+] Deleted registry key " << key1 << std::endl;
+        std::cout << "Would you like to delete registry key: " << key1 << " (y/n)? ";
+        std::cin >> user_input;
+        if (user_input == "y" || user_input == "Y") {
+            if (system(("reg delete \"" + key1 + "\" /f").c_str()) == 0) {
+                std::cout << "[+] Deleted registry key " << key1 << std::endl;
+            }
+            else {
+                std::cout << "[-] Failed to delete registry key " << key1 << std::endl;
+            }
         }
         else {
-            std::cout << "[-] Failed to delete registry key " << key1 << std::endl;
+            std::cout << "[-] Skipped registry key " << key1 << std::endl;
         }
     }
     else {
@@ -99,11 +123,18 @@ void cleaner() {
 
     std::string key2 = "HKEY_CURRENT_USER\\SOFTWARE\\Valve\\Steam\\Users";
     if (registryKeyExists(key2)) {
-        if (system(("reg delete \"" + key2 + "\" /f").c_str()) == 0) {
-            std::cout << "[+] Deleted registry key " << key2 << std::endl;
+        std::cout << "Would you like to delete registry key: " << key2 << " (y/n)? ";
+        std::cin >> user_input;
+        if (user_input == "y" || user_input == "Y") {
+            if (system(("reg delete \"" + key2 + "\" /f").c_str()) == 0) {
+                std::cout << "[+] Deleted registry key " << key2 << std::endl;
+            }
+            else {
+                std::cout << "[-] Failed to delete registry key " << key2 << std::endl;
+            }
         }
         else {
-            std::cout << "[-] Failed to delete registry key " << key2 << std::endl;
+            std::cout << "[-] Skipped registry key " << key2 << std::endl;
         }
     }
     else {
@@ -143,7 +174,6 @@ int main() {
         return 0;
     }
 
-
     slowtype("[!] Steam cleaner by rustbuilderz.\n");
 
     slowtype("[!] Press Enter to continue..");
@@ -159,8 +189,27 @@ int main() {
     system("taskkill /im steam.exe /f");
     system("cls");
 
-    cleaner();
-    exit_program();
+    int option = 0;
+    slowtype("[+] Choose a cleaning option:");
+    slowtype("[1] Go through files one by one (ask y/n for every delete)");
+    slowtype("[2] Delete all automatically");
+    slowtype("[3] End");
+    std::cin >> option;
+    std::cin.ignore();  // To handle leftover newline character after user input
+
+    if (option == 1) {
+        cleaner(false); // Ask for confirmation before deletion
+    }
+    else if (option == 2) {
+        cleaner(true);  // Delete all automatically
+    }
+    else if (option == 3) {
+        exit_program();  // End the program
+        return 0;
+    }
+    else {
+        slowtype("[-] Invalid option. Exiting...");
+    }
 
     return 0;
 }
